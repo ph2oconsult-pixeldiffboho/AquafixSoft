@@ -33,7 +33,10 @@ import {
   TrendingUp,
   Minus,
   PieChart as PieChartIcon,
-  Receipt
+  Receipt,
+  ShieldAlert,
+  Flame,
+  Snowflake
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -75,7 +78,6 @@ const App: React.FC = () => {
     dosingMode: 'LIME_SODA'
   });
 
-  const [showLogic, setShowLogic] = useState(false);
   const [advice, setAdvice] = useState<string>('');
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
 
@@ -100,23 +102,6 @@ const App: React.FC = () => {
     setIsLoadingAdvice(false);
   };
 
-  const speciationData = [
-    {
-      name: 'Raw water',
-      'Ca-CH': results.speciation?.raw.caCH || 0,
-      'Ca-NCH': results.speciation?.raw.caNCH || 0,
-      'Mg-CH': results.speciation?.raw.mgCH || 0,
-      'Mg-NCH': results.speciation?.raw.mgNCH || 0,
-    },
-    {
-      name: 'Treated water',
-      'Ca-CH': Math.max(0, results.speciation?.treated.caCH || 0),
-      'Ca-NCH': Math.max(0, results.speciation?.treated.caNCH || 0),
-      'Mg-CH': Math.max(0, results.speciation?.treated.mgCH || 0),
-      'Mg-NCH': Math.max(0, results.speciation?.treated.mgNCH || 0),
-    }
-  ];
-
   const sludgePieData = [
     { name: 'CaCO₃ sludge', value: results.caCO3Sludge, color: '#3b82f6' },
     { name: 'Mg(OH)₂ sludge', value: results.mgOH2Sludge, color: '#a855f7' },
@@ -127,6 +112,9 @@ const App: React.FC = () => {
     { name: 'Soda ash cost', value: results.dailySodaAshCost, color: '#6366f1' },
     { name: 'Disposal cost', value: results.dailyDisposalCost, color: '#10b981' },
   ].filter(d => d.value > 0);
+
+  const lsiLabel = results.lsi > 0.5 ? 'Scaling' : results.lsi < -0.5 ? 'Corrosive' : 'Stable';
+  const lsiColor = results.lsi > 0.5 ? 'text-amber-500' : results.lsi < -0.5 ? 'text-blue-500' : 'text-emerald-500';
 
   return (
     <div className="min-h-screen pb-12 bg-slate-50 text-slate-900">
@@ -233,27 +221,66 @@ const App: React.FC = () => {
             <div className="xl:col-span-7 bg-white rounded-[2.5rem] shadow-xl border border-slate-200/60 p-8 h-[500px] flex flex-col text-left">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20"><Scale className="w-6 h-6 text-white" /></div>
+                  <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20"><ShieldCheck className="w-6 h-6 text-white" /></div>
                   <div>
-                    <h2 className="font-black text-xl text-slate-800 tracking-tighter">Fractional speciation</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tracking CH and NCH removal</p>
+                    <h2 className="font-black text-xl text-slate-800 tracking-tighter">Water Stability & Saturation</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">LSI & CCPP Characterization</p>
                   </div>
                 </div>
               </div>
-              <div className="flex-1 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={speciationData} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#64748b'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#94a3b8', fontWeight: '700'}} />
-                    <Tooltip cursor={{fill: '#f1f5f9', radius: 12}} contentStyle={{borderRadius: '24px', border: 'none', padding: '16px'}} />
-                    <Legend verticalAlign="bottom" align="center" iconType="rect" wrapperStyle={{paddingTop: '20px', fontSize: '10px', fontWeight: '900'}} />
-                    <Bar dataKey="Ca-CH" stackId="a" fill="#3b82f6" />
-                    <Bar dataKey="Ca-NCH" stackId="a" fill="#60a5fa" />
-                    <Bar dataKey="Mg-CH" stackId="a" fill="#8b5cf6" />
-                    <Bar dataKey="Mg-NCH" stackId="a" fill="#a78bfa" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              
+              <div className="flex-1 space-y-8 py-4">
+                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 relative overflow-hidden">
+                   <div className="flex items-center justify-between mb-6 relative z-10">
+                      <div>
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Langelier Index (LSI)</span>
+                        <div className="flex items-baseline gap-2">
+                           <span className={`text-5xl font-black tracking-tighter ${lsiColor}`}>{results.lsi.toFixed(2)}</span>
+                           <span className={`text-xs font-bold uppercase tracking-widest ${lsiColor}`}>{lsiLabel}</span>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                         {results.lsi > 0 ? <Flame className="w-8 h-8 text-amber-500" /> : <Snowflake className="w-8 h-8 text-blue-500" />}
+                      </div>
+                   </div>
+                   
+                   <div className="relative h-4 w-full bg-slate-200 rounded-full overflow-hidden flex items-center justify-center">
+                      <div className="absolute left-0 top-0 h-full w-1/3 bg-blue-400" />
+                      <div className="absolute left-1/3 top-0 h-full w-1/3 bg-emerald-400" />
+                      <div className="absolute left-2/3 top-0 h-full w-1/3 bg-amber-400" />
+                      <div 
+                        className="absolute h-6 w-1 bg-slate-900 shadow-lg z-20 transition-all duration-700" 
+                        style={{ left: `${Math.min(100, Math.max(0, (results.lsi + 3) / 6 * 100))}%` }} 
+                      />
+                   </div>
+                   <div className="flex justify-between mt-2 px-1">
+                      <span className="text-[8px] font-bold text-slate-400">-3.0</span>
+                      <span className="text-[8px] font-bold text-slate-400">0.0 (Equilibrium)</span>
+                      <span className="text-[8px] font-bold text-slate-400">+3.0</span>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                   <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CCPP Potential</span>
+                      <div className="flex items-baseline gap-1">
+                         <span className="text-3xl font-black tracking-tighter text-slate-800">{results.ccpp.toFixed(1)}</span>
+                         <span className="text-[10px] font-black text-slate-400">mg/L</span>
+                      </div>
+                      <p className="text-[9px] font-medium text-slate-400 mt-2 italic leading-tight">
+                         Mass of CaCO₃ expected to precipitate at equilibrium.
+                      </p>
+                   </div>
+                   <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saturation pH (pHs)</span>
+                      <div className="flex items-baseline gap-1">
+                         <span className="text-3xl font-black tracking-tighter text-slate-800">{(results.theoreticalPh - results.lsi).toFixed(2)}</span>
+                      </div>
+                      <p className="text-[9px] font-medium text-slate-400 mt-2 italic leading-tight">
+                         Calculated pH at which water is in equilibrium with CaCO₃.
+                      </p>
+                   </div>
+                </div>
               </div>
             </div>
 
@@ -329,13 +356,9 @@ const App: React.FC = () => {
                       <ArrowUpDown className="w-5 h-5 text-emerald-200" />
                       <h3 className="font-black text-sm tracking-widest leading-none uppercase">Economic strategy comparison</h3>
                     </div>
-                    <button onClick={() => setShowLogic(!showLogic)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-                      <HelpCircle className="w-4 h-4 text-emerald-100" />
-                    </button>
                   </div>
 
                   <div className="space-y-6">
-                    {/* Strategy Comparison Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[11px] font-bold">
                       <div className="bg-white/10 p-6 rounded-[2rem] border border-white/5 backdrop-blur-sm">
                         <div className="flex items-center justify-between mb-4 text-emerald-200 border-b border-emerald-400/20 pb-3">
@@ -384,7 +407,6 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Savings Summary */}
                     {results.optimization && results.optimization.savingsPotential > 0 ? (
                       <div className="p-6 bg-amber-400 text-amber-950 rounded-[2rem] flex items-center justify-between shadow-[0_15px_30px_rgba(251,191,36,0.3)]">
                         <div className="flex items-center gap-4 text-left">
@@ -548,6 +570,7 @@ const App: React.FC = () => {
               <GlossaryItem term="Mg" definition="Magnesium (as CaCO₃)" />
               <GlossaryItem term="pH" definition="Potential of hydrogen" />
               <GlossaryItem term="LSI" definition="Langelier saturation index" />
+              <GlossaryItem term="CCPP" definition="CaCO₃ precipitation potential" />
             </div>
           </div>
           <div className="text-right">

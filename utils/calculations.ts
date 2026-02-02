@@ -54,8 +54,7 @@ export const calculateSoftening = (
     const finalOhMolar = Math.pow(10, -(14 - finalPh));
     const hydroxideAlkAsCaCO3 = finalOhMolar * 1000 * 50; 
 
-    const byproductCaNCH = actualRemovedMgNCH;
-    const potentialTotalCaNCH = rawCaNCH + byproductCaNCH;
+    const potentialTotalCaNCH = rawCaNCH + actualRemovedMgNCH;
     const actualRemovedCaCH = Math.max(0, rawCaCH - Math.min(rawCaCH, tCa));
     
     let actualRemovedCaNCH = 0;
@@ -87,8 +86,7 @@ export const calculateSoftening = (
       reactiveLimeAsCaCO3,
       actualRemovedMg, 
       actualRemovedMgCH, 
-      // Fix: include actualRemovedMgNCH in return object to resolve property error
-      actualRemovedMgNCH, 
+      actualRemovedMgNCH,
       actualRemovedCaCH, 
       actualRemovedCaNCH, 
       achievedCa, 
@@ -115,6 +113,25 @@ export const calculateSoftening = (
 
   const savingsPotential = (current.cost + dailyDisposalCost) - (alternative.cost + altDailyDisposalCost);
 
+  // LSI/CCPP Calculation for Treated Water
+  const TDS = water.conductivity * 0.65;
+  const A_const = (Math.log10(TDS) - 1) / 10;
+  const B_const = -13.12 * Math.log10(rawTemp + 273.15) + 34.55;
+  
+  // Calcium as CaCO3 to Ca+2 mg/L: [CaCO3] * 0.4008
+  const Ca2plus = current.achievedCa * 0.4008;
+  const C_const = Math.log10(Ca2plus) - 0.4;
+  
+  const Alkalinity_mgL = 35 + current.hydroxideAlkAsCaCO3; // Residual softening alk approx
+  const D_const = Math.log10(Alkalinity_mgL);
+
+  const pHs = (9.3 + A_const + B_const) - (C_const + D_const);
+  const lsi = current.finalPh - pHs;
+  
+  // CCPP Approximation: mg/L as CaCO3
+  // Simplified form based on alkalinity and LSI for high-pH softened water
+  const ccpp = Alkalinity_mgL * (1 - Math.pow(10, -lsi));
+
   return {
     limeDose: current.lDose,
     sodaAshDose: current.sDose,
@@ -128,24 +145,16 @@ export const calculateSoftening = (
     removedMg: current.actualRemovedMg,
     achievedCa: current.achievedCa,
     achievedMg: current.achievedMg,
-    alkalinityAfter: 35 + current.hydroxideAlkAsCaCO3,
-    pAlkalinity: 17.5 + current.hydroxideAlkAsCaCO3,
+    alkalinityAfter: Alkalinity_mgL,
+    pAlkalinity: (Alkalinity_mgL / 2) + current.hydroxideAlkAsCaCO3,
     hydroxideAlkalinity: current.hydroxideAlkAsCaCO3,
     chemicalEfficiency: (current.reactiveLimeAsCaCO3 / (current.reactiveLimeAsCaCO3 + current.hydroxideAlkAsCaCO3)) * 100,
     dailyCost: current.cost + dailyDisposalCost,
     dailyLimeCost: current.dailyLimeCost,
     dailySodaAshCost: current.dailySodaAshCost,
     dailyDisposalCost: dailyDisposalCost,
-    speciation: {
-      raw: { caCH: rawCaCH, caNCH: rawCaNCH, mgCH: rawMgCH, mgNCH: rawMgNCH },
-      treated: { 
-        caCH: rawCaCH - current.actualRemovedCaCH, 
-        // Fix: Use current.actualRemovedMgNCH for byproduct calculation and resolve property error
-        caNCH: (rawCaNCH + current.actualRemovedMgNCH) - current.actualRemovedCaNCH, 
-        mgCH: rawMgCH - current.actualRemovedMgCH, 
-        mgNCH: rawMgNCH - current.actualRemovedMgNCH 
-      }
-    },
+    lsi: lsi,
+    ccpp: ccpp,
     optimization: {
       alternativeCost: alternative.cost + altDailyDisposalCost,
       alternativeLimeDose: alternative.lDose,
@@ -157,8 +166,3 @@ export const calculateSoftening = (
     }
   };
 };
-
-function byproductCaNCH(mode: string, mgNCH: number) {
-    // This is just a helper used for the speciation logic
-    return 0; // The logic is handled inline in the actual calculation above for NCH byproduct
-}

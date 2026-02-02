@@ -15,7 +15,6 @@ export const getGeminiAdvice = async (
     
     RAW WATER:
     - pH: ${water.ph}
-    - Conductivity: ${water.conductivity} µS/cm
     - Ca: ${water.ca} mg/L as CaCO₃
     - Mg: ${water.mg} mg/L as CaCO₃
     - Alkalinity: ${water.alkalinity} mg/L as CaCO₃
@@ -24,19 +23,19 @@ export const getGeminiAdvice = async (
     TARGETS:
     - Target Ca: ${targets.targetCa} mg/L as CaCO₃
     - Target Mg: ${targets.targetMg} mg/L as CaCO₃
-    - Soda ash enabled: ${targets.dosingMode === 'LIME_SODA'}
     
-    CALCULATED RESULTS:
+    CALCULATED RESULTS & STABILITY:
     - Lime dose: ${results.limeDose.toFixed(2)} mg/L (as Ca(OH)₂)
     - Soda ash dose: ${results.sodaAshDose.toFixed(2)} mg/L (as Na₂CO₃)
-    - Sludge: ${results.sludgeProduction.toFixed(2)} kg/d
     - Target pH: ${results.theoreticalPh.toFixed(1)}
+    - Langelier Saturation Index (LSI): ${results.lsi.toFixed(2)}
+    - CCPP (Precipitation Potential): ${results.ccpp.toFixed(1)} mg/L as CaCO₃
     
     Please provide:
     1. A brief validation of whether these targets are efficient.
-    2. Comments on potential scaling issues or stability (LSI/RSI index hints).
-    3. Advice on whether "Split Treatment" might be more cost-effective.
-    4. Safety or handling tips for the chemicals involved (Lime, Soda Ash).
+    2. Deep insights on the post-softening stability (scaling vs corrosive) based on LSI/CCPP.
+    3. Advice on whether "Split Treatment" or stabilization (recarbonation/acid) is needed.
+    4. Safety or handling tips for the chemicals involved.
     
     Keep the tone professional, technical, and concise. Use markdown for formatting.
   `;

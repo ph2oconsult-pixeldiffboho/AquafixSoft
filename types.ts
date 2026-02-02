@@ -42,10 +42,8 @@ export interface CalculationResults {
   dailyLimeCost: number;
   dailySodaAshCost: number;
   dailyDisposalCost: number;
-  speciation?: {
-    raw: { caCH: number; caNCH: number; mgCH: number; mgNCH: number };
-    treated: { caCH: number; caNCH: number; mgCH: number; mgNCH: number };
-  };
+  lsi: number; // Langelier Saturation Index
+  ccpp: number; // Calcium Carbonate Precipitation Potential (mg/L as CaCO3)
   optimization?: {
     alternativeCost: number;
     alternativeLimeDose: number;
